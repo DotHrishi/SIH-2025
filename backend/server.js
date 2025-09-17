@@ -31,6 +31,7 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/directory', require('./routes/directory'));
 app.use('/api/files', require('./routes/files'));
+app.use('/api/queries', require('./routes/queries'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

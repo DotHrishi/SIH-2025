@@ -345,7 +345,7 @@ const WaterQualityFormScreen = ({ navigation }) => {
               onChangeText={(value) => handleInputChange('visualInspection', 'odor', value)}
               placeholder="e.g., None, Chlorine, Fishy, Rotten"
             />
-          </div>
+          </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Clarity</Text>

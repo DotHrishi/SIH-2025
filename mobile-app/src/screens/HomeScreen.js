@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import SafeIcon from '../components/SafeIcon';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { dashboardAPI } from '../services/api';
@@ -135,20 +135,20 @@ const HomeScreen = ({ navigation }) => {
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="notifications-outline" size={24} color="#333" />
+              <SafeIcon name="notifications-outline" size={24} color="#333" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="call-outline" size={24} color="#333" />
+              <SafeIcon name="call-outline" size={24} color="#333" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="person-outline" size={24} color="#333" />
+              <SafeIcon name="person-outline" size={24} color="#333" />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <SafeIcon name="search" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search locations, reports, or alerts..."
@@ -189,13 +189,13 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <TouchableOpacity style={styles.quickActionCard} onPress={handleQuickAction}>
             <View style={styles.quickActionIcon}>
-              <Ionicons name="add" size={24} color="white" />
+              <SafeIcon name="add" size={24} color="white" />
             </View>
             <View style={styles.quickActionContent}>
               <Text style={styles.quickActionTitle}>Submit New Report</Text>
               <Text style={styles.quickActionSubtitle}>Submit water testing data and quality assessments</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
+            <SafeIcon name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
         </View>
 
@@ -231,7 +231,7 @@ const HomeScreen = ({ navigation }) => {
                 styles.activityIcon,
                 { backgroundColor: activity.type === 'patient' ? '#2196F3' : '#4CAF50' }
               ]}>
-                <Ionicons 
+                <SafeIcon 
                   name={activity.type === 'patient' ? 'medical' : 'water'} 
                   size={20} 
                   color="white" 
