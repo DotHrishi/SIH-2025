@@ -256,8 +256,16 @@ const SimpleApp = () => {
   };
 
   const handleWaterQualitySubmit = async () => {
-    if (!waterQualityForm.location.address || !waterQualityForm.location.waterSource || !waterQualityForm.collectorName) {
-      Alert.alert('Validation Error', 'Please fill in all required fields');
+    // Validate required fields
+    if (!waterQualityForm.location.address || 
+        !waterQualityForm.location.district ||
+        !waterQualityForm.location.waterSource || 
+        !waterQualityForm.collectorName ||
+        !waterQualityForm.testingParameters.pH ||
+        !waterQualityForm.testingParameters.turbidity ||
+        !waterQualityForm.testingParameters.temperature ||
+        !waterQualityForm.testingParameters.dissolvedOxygen) {
+      Alert.alert('Validation Error', 'Please fill in all required fields:\n• Address\n• District\n• Water Source\n• Collector Name\n• All Testing Parameters (pH, Turbidity, Temperature, Dissolved Oxygen)');
       return;
     }
 
@@ -282,32 +290,32 @@ const SimpleApp = () => {
         }
       }
 
-      // Prepare report data for backend
+      // Generate unique sample ID
+      const sampleId = `SAMPLE_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // Prepare report data for backend (matching backend expected format)
       const reportData = {
+        submittedBy: waterQualityForm.collectorName,
         location: {
           coordinates: waterQualityForm.location.coordinates,
           address: waterQualityForm.location.address,
           district: waterQualityForm.location.district,
-          waterSource: waterQualityForm.location.waterSource,
+          waterSource: waterQualityForm.location.waterSource.toLowerCase(), // Backend expects lowercase
         },
         testingParameters: {
-          pH: parseFloat(waterQualityForm.testingParameters.pH) || null,
-          turbidity: parseFloat(waterQualityForm.testingParameters.turbidity) || null,
-          temperature: parseFloat(waterQualityForm.testingParameters.temperature) || null,
-          dissolvedOxygen: parseFloat(waterQualityForm.testingParameters.dissolvedOxygen) || null,
+          pH: parseFloat(waterQualityForm.testingParameters.pH) || 7.0,
+          turbidity: parseFloat(waterQualityForm.testingParameters.turbidity) || 1.0,
+          temperature: parseFloat(waterQualityForm.testingParameters.temperature) || 25.0,
+          dissolvedOxygen: parseFloat(waterQualityForm.testingParameters.dissolvedOxygen) || 8.0,
         },
-        visualInspection: waterQualityForm.visualInspection,
         sampleCollection: {
-          collectionDate: new Date().toISOString().split('T')[0],
-          collectionTime: new Date().toTimeString().split(' ')[0],
+          collectionDate: new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0], // Local date in YYYY-MM-DD format
+          collectionTime: new Date().toLocaleTimeString('en-GB', { hour12: false }).substring(0, 5), // HH:MM format
           collectorName: waterQualityForm.collectorName,
-          collectorContact: waterQualityForm.collectorContact,
+          sampleId: sampleId,
         },
-        additionalNotes: waterQualityForm.additionalNotes,
-        images: imageUrls,
-        reportType: 'water_quality',
+        notes: waterQualityForm.additionalNotes || '',
         status: 'pending',
-        submittedVia: 'mobile_app',
       };
 
       console.log('Submitting water quality report:', reportData);
@@ -614,7 +622,7 @@ const SimpleApp = () => {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>District</Text>
+          <Text style={styles.label}>District *</Text>
           <TextInput
             style={styles.input}
             value={waterQualityForm.location.district}
@@ -645,7 +653,7 @@ const SimpleApp = () => {
         
         <View style={styles.row}>
           <View style={styles.halfInput}>
-            <Text style={styles.label}>pH Level</Text>
+            <Text style={styles.label}>pH Level *</Text>
             <TextInput
               style={styles.input}
               value={waterQualityForm.testingParameters.pH}
@@ -658,7 +666,7 @@ const SimpleApp = () => {
             />
           </View>
           <View style={styles.halfInput}>
-            <Text style={styles.label}>Turbidity (NTU)</Text>
+            <Text style={styles.label}>Turbidity (NTU) *</Text>
             <TextInput
               style={styles.input}
               value={waterQualityForm.testingParameters.turbidity}
@@ -674,7 +682,7 @@ const SimpleApp = () => {
 
         <View style={styles.row}>
           <View style={styles.halfInput}>
-            <Text style={styles.label}>Temperature (°C)</Text>
+            <Text style={styles.label}>Temperature (°C) *</Text>
             <TextInput
               style={styles.input}
               value={waterQualityForm.testingParameters.temperature}
@@ -687,7 +695,7 @@ const SimpleApp = () => {
             />
           </View>
           <View style={styles.halfInput}>
-            <Text style={styles.label}>Dissolved Oxygen (mg/L)</Text>
+            <Text style={styles.label}>Dissolved Oxygen (mg/L) *</Text>
             <TextInput
               style={styles.input}
               value={waterQualityForm.testingParameters.dissolvedOxygen}

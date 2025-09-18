@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   const [alertCount] = useState(3); // Placeholder for alert count
@@ -13,12 +13,12 @@ const Header = () => {
               💧 Jal Drishti
             </Link>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             {/* Alert notifications */}
             <div className="relative">
-              <Link 
-                to="/alerts" 
+              <Link
+                to="/alerts"
                 className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 px-3 py-1 rounded-full text-sm transition-colors"
               >
                 <span>🚨</span>
@@ -30,7 +30,7 @@ const Header = () => {
                 )}
               </Link>
             </div>
-            
+
             {/* User menu placeholder */}
             <div className="flex items-center space-x-2">
               <span className="text-sm">Admin User</span>
