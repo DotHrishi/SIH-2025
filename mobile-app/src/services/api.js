@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// Configure base URL - update this to your backend URL
-const BASE_URL = 'http://localhost:5000/api'; // Change to your server IP for physical device testing
+import { API_CONFIG } from '../config/config';
+
+// Configure base URL - update this in config/config.js
+const BASE_URL = API_CONFIG.BASE_URL;
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -25,6 +27,7 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    console.log('API Response:', response.status, response.config.url);
     return response;
   },
   (error) => {

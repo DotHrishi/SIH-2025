@@ -14,7 +14,8 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import axios from 'axios';
+import LeafletMap from './src/components/LeafletMap';
+import { waterReportsAPI, patientReportsAPI, dashboardAPI, queriesAPI, filesAPI } from './src/services/api';
 
 const SimpleApp = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -69,6 +70,11 @@ const SimpleApp = () => {
     },
     additionalNotes: '',
   });
+  const [queryForm, setQueryForm] = useState({
+    name: '',
+    email: '',
+    query: '',
+  });
 
   const symptoms = [
     'Diarrhea', 'Vomiting', 'Nausea', 'Abdominal Pain', 'Fever',
@@ -81,7 +87,69 @@ const SimpleApp = () => {
 
   useEffect(() => {
     getCurrentLocation();
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      // Load dashboard statistics
+      const statsResponse = await dashboardAPI.getStats();
+      if (statsResponse.data.success) {
+        console.log('Dashboard stats loaded:', statsResponse.data.data);
+      }
+
+      // Load recent activity
+      const activityResponse = await dashboardAPI.getRecentActivity();
+      if (activityResponse.data.success) {
+        console.log('Recent activity loaded:', activityResponse.data.data);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      // Continue with mock data if backend is not available
+    }
+  };
+
+  const handleQuerySubmit = async () => {
+    if (!queryForm.name.trim() || !queryForm.query.trim()) {
+      Alert.alert('Validation Error', 'Please enter your name and query');
+      return;
+    }
+
+    try {
+      const queryData = {
+        query: queryForm.query,
+        contactInfo: {
+          name: queryForm.name,
+          email: queryForm.email,
+        },
+        type: 'general',
+        status: 'pending',
+        submittedVia: 'mobile_app',
+      };
+
+      const response = await queriesAPI.create(queryData);
+      
+      if (response.data.success) {
+        Alert.alert(
+          'Success',
+          'Your query has been submitted successfully! Our experts will respond soon and it will appear on the admin dashboard.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setQueryForm({ name: '', email: '', query: '' });
+              },
+            },
+          ]
+        );
+      } else {
+        throw new Error(response.data.message || 'Failed to submit query');
+      }
+    } catch (error) {
+      console.error('Query submit error:', error);
+      Alert.alert('Error', 'Failed to submit query. Please check your internet connection and try again.');
+    }
+  };
 
   const getCurrentLocation = async () => {
     try {
@@ -194,22 +262,76 @@ const SimpleApp = () => {
     }
 
     try {
-      // In a real app, you would upload images and submit to your backend
-      console.log('Submitting water quality report:', waterQualityForm);
-      Alert.alert('Success', 'Water quality report submitted successfully!');
-      setShowReportForm(false);
-      // Reset form
-      setWaterQualityForm({
-        location: { address: '', district: '', waterSource: '', coordinates: [] },
-        testingParameters: { pH: '', turbidity: '', temperature: '', dissolvedOxygen: '' },
-        visualInspection: { color: '', odor: '', clarity: '' },
-        collectorName: '',
-        collectorContact: '',
-        additionalNotes: '',
-        images: [],
-      });
+      // Upload images first if any
+      const imageUrls = [];
+      for (const image of waterQualityForm.images) {
+        try {
+          const formData = new FormData();
+          formData.append('file', {
+            uri: image.uri,
+            type: 'image/jpeg',
+            name: 'water-quality-image.jpg',
+          });
+
+          const uploadResponse = await filesAPI.upload(formData);
+          if (uploadResponse.data.success) {
+            imageUrls.push(uploadResponse.data.data.url);
+          }
+        } catch (uploadError) {
+          console.error('Image upload error:', uploadError);
+        }
+      }
+
+      // Prepare report data for backend
+      const reportData = {
+        location: {
+          coordinates: waterQualityForm.location.coordinates,
+          address: waterQualityForm.location.address,
+          district: waterQualityForm.location.district,
+          waterSource: waterQualityForm.location.waterSource,
+        },
+        testingParameters: {
+          pH: parseFloat(waterQualityForm.testingParameters.pH) || null,
+          turbidity: parseFloat(waterQualityForm.testingParameters.turbidity) || null,
+          temperature: parseFloat(waterQualityForm.testingParameters.temperature) || null,
+          dissolvedOxygen: parseFloat(waterQualityForm.testingParameters.dissolvedOxygen) || null,
+        },
+        visualInspection: waterQualityForm.visualInspection,
+        sampleCollection: {
+          collectionDate: new Date().toISOString().split('T')[0],
+          collectionTime: new Date().toTimeString().split(' ')[0],
+          collectorName: waterQualityForm.collectorName,
+          collectorContact: waterQualityForm.collectorContact,
+        },
+        additionalNotes: waterQualityForm.additionalNotes,
+        images: imageUrls,
+        reportType: 'water_quality',
+        status: 'pending',
+        submittedVia: 'mobile_app',
+      };
+
+      console.log('Submitting water quality report:', reportData);
+      const response = await waterReportsAPI.create(reportData);
+      
+      if (response.data.success) {
+        Alert.alert('Success', 'Water quality report submitted successfully! It will appear on the dashboard.');
+        setShowReportForm(false);
+        // Reset form
+        setWaterQualityForm({
+          location: { address: '', district: '', waterSource: '', coordinates: [] },
+          testingParameters: { pH: '', turbidity: '', temperature: '', dissolvedOxygen: '' },
+          visualInspection: { color: '', odor: '', clarity: '' },
+          collectorName: '',
+          collectorContact: '',
+          additionalNotes: '',
+          images: [],
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to submit report');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to submit report. Please try again.');
+      console.error('Submit error:', error);
+      Alert.alert('Error', 'Failed to submit report. Please check your internet connection and try again.');
     }
   };
 
@@ -220,19 +342,57 @@ const SimpleApp = () => {
     }
 
     try {
-      console.log('Submitting patient report:', patientForm);
-      Alert.alert('Success', 'Patient report submitted successfully!');
-      setShowReportForm(false);
-      // Reset form
-      setPatientForm({
-        patientInfo: { name: '', age: '', gender: '', contactNumber: '' },
-        location: { address: '', district: '', coordinates: [] },
-        healthInfo: { symptoms: [], suspectedDisease: '', severity: 'mild', onsetDate: '' },
-        waterExposure: { waterSource: '', exposureDate: '', otherExposed: '' },
-        additionalNotes: '',
-      });
+      // Prepare patient report data for backend
+      const reportData = {
+        patientInfo: {
+          name: patientForm.patientInfo.name,
+          age: parseInt(patientForm.patientInfo.age),
+          gender: patientForm.patientInfo.gender,
+          contactNumber: patientForm.patientInfo.contactNumber,
+        },
+        location: {
+          coordinates: patientForm.location.coordinates,
+          address: patientForm.location.address,
+          district: patientForm.location.district,
+        },
+        healthInfo: {
+          symptoms: patientForm.healthInfo.symptoms,
+          suspectedDisease: patientForm.healthInfo.suspectedDisease,
+          severity: patientForm.healthInfo.severity,
+          onsetDate: patientForm.healthInfo.onsetDate,
+        },
+        waterExposure: {
+          waterSource: patientForm.waterExposure.waterSource,
+          exposureDate: patientForm.waterExposure.exposureDate,
+          otherExposed: parseInt(patientForm.waterExposure.otherExposed) || 0,
+        },
+        additionalNotes: patientForm.additionalNotes,
+        reportType: 'patient',
+        status: 'pending',
+        submittedVia: 'mobile_app',
+        reportDate: new Date().toISOString(),
+      };
+
+      console.log('Submitting patient report:', reportData);
+      const response = await patientReportsAPI.create(reportData);
+      
+      if (response.data.success) {
+        Alert.alert('Success', 'Patient report submitted successfully! It will appear on the dashboard and may trigger health alerts.');
+        setShowReportForm(false);
+        // Reset form
+        setPatientForm({
+          patientInfo: { name: '', age: '', gender: '', contactNumber: '' },
+          location: { address: '', district: '', coordinates: [] },
+          healthInfo: { symptoms: [], suspectedDisease: '', severity: 'mild', onsetDate: '' },
+          waterExposure: { waterSource: '', exposureDate: '', otherExposed: '' },
+          additionalNotes: '',
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to submit report');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to submit report. Please try again.');
+      console.error('Submit error:', error);
+      Alert.alert('Error', 'Failed to submit report. Please check your internet connection and try again.');
     }
   };
 
@@ -270,14 +430,11 @@ const SimpleApp = () => {
 
       <View style={styles.mapContainer}>
         {location ? (
-          <MapView style={styles.map} region={location}>
-            <Marker coordinate={location} title="Your Location" />
-            {/* Mock markers for demo */}
-            <Marker coordinate={{ latitude: location.latitude + 0.001, longitude: location.longitude + 0.001 }} pinColor="green" />
-            <Marker coordinate={{ latitude: location.latitude - 0.001, longitude: location.longitude + 0.001 }} pinColor="blue" />
-            <Marker coordinate={{ latitude: location.latitude + 0.001, longitude: location.longitude - 0.001 }} pinColor="orange" />
-            <Marker coordinate={{ latitude: location.latitude - 0.001, longitude: location.longitude - 0.001 }} pinColor="red" />
-          </MapView>
+          <LeafletMap
+            latitude={location.latitude}
+            longitude={location.longitude}
+            style={styles.map}
+          />
         ) : (
           <View style={styles.mapPlaceholder}>
             <Text style={styles.mapPlaceholderText}>📍 Loading Map...</Text>
@@ -982,12 +1139,27 @@ const SimpleApp = () => {
         <View style={styles.querySection}>
           <Text style={styles.sectionTitle}>Submit Your Query</Text>
           <TextInput
+            style={styles.input}
+            placeholder="Your Name"
+            value={queryForm.name}
+            onChangeText={(value) => setQueryForm(prev => ({ ...prev, name: value }))}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Your Email (optional)"
+            value={queryForm.email}
+            onChangeText={(value) => setQueryForm(prev => ({ ...prev, email: value }))}
+            keyboardType="email-address"
+          />
+          <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Have a question about water quality or health concerns? Ask our experts..."
             multiline
             numberOfLines={6}
+            value={queryForm.query}
+            onChangeText={(value) => setQueryForm(prev => ({ ...prev, query: value }))}
           />
-          <TouchableOpacity style={styles.submitButton}>
+          <TouchableOpacity style={styles.submitButton} onPress={handleQuerySubmit}>
             <Text style={styles.submitButtonText}>Submit Query</Text>
           </TouchableOpacity>
         </View>

@@ -5,12 +5,12 @@ const Header = () => {
   const [alertCount] = useState(3); // Placeholder for alert count
 
   return (
-    <header className="bg-blue-600 text-white shadow-lg">
+    <header className="bg-[#000] text-white shadow-lg">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link to="/" className="text-xl font-bold">
-              Jal Drishti 💧
+              💧 Jal Drishti
             </Link>
           </div>
           
