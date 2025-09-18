@@ -54,6 +54,11 @@ export const analyticsAPI = {
     params, 
     responseType: 'blob' 
   }),
+  exportPDF: (params) => api.get('/analytics/export/pdf', { 
+    params, 
+    responseType: 'blob' 
+  }),
+  emailReport: (data) => api.post('/analytics/export/email', data),
   getCorrelation: (params) => api.get('/analytics/correlation', { params }),
 };
 
@@ -109,6 +114,14 @@ export const reportsAPI = {
 export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),
   getRecentActivity: () => api.get('/dashboard/recent-activity'),
+};
+
+// Maps API methods
+export const mapsAPI = {
+  getPatientClusters: (params) => api.get('/maps/patient-clusters', { params }),
+  getClusterDetails: (clusterId, params) => api.get(`/maps/cluster-details/${clusterId}`, { params }),
+  getClusterUpdates: (params) => api.get('/maps/cluster-updates', { params }),
+  updateClusterData: () => api.post('/maps/patient-clusters/refresh'),
 };
 
 export default api;

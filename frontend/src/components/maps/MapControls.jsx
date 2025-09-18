@@ -33,6 +33,12 @@ const MapControls = ({
       label: 'NGO Partners',
       icon: '🤝',
       color: 'text-purple-600'
+    },
+    {
+      key: 'patientClusters',
+      label: 'Patient Clusters',
+      icon: '🎯',
+      color: 'text-red-600'
     }
   ];
 
@@ -114,15 +120,15 @@ const MapControls = ({
           </div>
           <div className="flex items-center space-x-2 text-xs">
             <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span>High Risk</span>
+            <span>Severe Cases</span>
           </div>
           <div className="flex items-center space-x-2 text-xs">
             <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            <span>Medium Risk</span>
+            <span>Moderate Cases</span>
           </div>
           <div className="flex items-center space-x-2 text-xs">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span>Low Risk / Safe</span>
+            <span>Mild Cases</span>
           </div>
         </div>
       </div>

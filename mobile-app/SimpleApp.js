@@ -372,7 +372,7 @@ const SimpleApp = () => {
           onsetDate: patientForm.healthInfo.onsetDate,
         },
         waterExposure: {
-          waterSource: patientForm.waterExposure.waterSource,
+          waterSource: patientForm.waterExposure.waterSource.toLowerCase(),
           exposureDate: patientForm.waterExposure.exposureDate,
           otherExposed: parseInt(patientForm.waterExposure.otherExposed) || 0,
         },

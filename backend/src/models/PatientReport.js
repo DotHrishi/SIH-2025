@@ -30,6 +30,18 @@ const patientInfoSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Location cannot exceed 200 characters']
   },
+  coordinates: {
+    type: [Number], // [longitude, latitude]
+    required: false,
+    validate: {
+      validator: function(coords) {
+        return !coords || (coords.length === 2 && 
+               coords[0] >= -180 && coords[0] <= 180 && 
+               coords[1] >= -90 && coords[1] <= 90);
+      },
+      message: 'Coordinates must be [longitude, latitude] with valid ranges'
+    }
+  },
   contactNumber: {
     type: String,
     required: false,
@@ -252,6 +264,7 @@ const patientReportSchema = new mongoose.Schema({
 
 // Create indexes for efficient querying (caseId already has unique index)
 patientReportSchema.index({ 'patientInfo.location': 1, createdAt: -1 });
+patientReportSchema.index({ 'patientInfo.coordinates': '2dsphere' }); // Geospatial index for clustering
 patientReportSchema.index({ severity: 1, createdAt: -1 });
 patientReportSchema.index({ 'diseaseIdentification.suspectedDisease': 1, createdAt: -1 });
 patientReportSchema.index({ emergencyAlert: 1, createdAt: -1 });

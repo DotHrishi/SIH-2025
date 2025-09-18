@@ -20,6 +20,7 @@ const adaptMobileAppPatientData = (mobileData) => {
       ageGroup: getAgeGroup(parseInt(mobileData.patientInfo?.age) || 0),
       gender: mobileData.patientInfo?.gender || 'other',
       location: mobileData.location?.address || mobileData.location?.district || 'Unknown Location',
+      coordinates: mobileData.location?.coordinates || mobileData.patientInfo?.coordinates || null,
       contactNumber: mobileData.patientInfo?.contactNumber || ''
     },
     symptoms: Array.isArray(mobileData.healthInfo?.symptoms) ? 
@@ -27,7 +28,7 @@ const adaptMobileAppPatientData = (mobileData) => {
       ['other'],
     severity: mobileData.healthInfo?.severity || 'mild',
     suspectedWaterSource: {
-      source: mobileData.waterExposure?.waterSource || 'other',
+      source: (mobileData.waterExposure?.waterSource || 'other').toLowerCase(),
       location: mobileData.location?.address || mobileData.location?.district || 'Unknown Location',
       sourceDescription: `Exposure date: ${mobileData.waterExposure?.exposureDate || 'Unknown'}, Others exposed: ${mobileData.waterExposure?.otherExposed || 0}`
     },

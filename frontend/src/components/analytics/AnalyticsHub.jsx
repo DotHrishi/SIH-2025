@@ -3,6 +3,8 @@ import DataExplorer from './DataExplorer';
 import TrendAnalysis from './TrendAnalysis';
 import AnalyticsMap from '../maps/AnalyticsMap';
 import MapFilter from '../maps/MapFilter';
+import ExportModal from './ExportModal';
+import FilterPanel from './FilterPanel';
 import api, { analyticsAPI } from '../../services/api';
 
 const AnalyticsHub = () => {
@@ -18,11 +20,13 @@ const AnalyticsHub = () => {
     locationBounds: null
   });
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [mapData, setMapData] = useState({
     waterReports: [],
     patientReports: []
   });
   const [loadingMapData, setLoadingMapData] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
   // Set default date range (last 30 days)
   useEffect(() => {
@@ -138,139 +142,40 @@ const AnalyticsHub = () => {
             disabled={isExporting}
             className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
           >
-            {isExporting ? 'Exporting...' : 'Export CSV'}
+            {isExporting ? 'Exporting...' : 'Quick CSV'}
           </button>
           <button
-            onClick={() => handleExport('excel')}
-            disabled={isExporting}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
+            onClick={() => setShowExportModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
           >
-            {isExporting ? 'Exporting...' : 'Export Excel'}
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export Options
           </button>
         </div>
       </div>
 
       {/* Filters Panel */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-          <button
-            onClick={clearFilters}
-            className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            Clear All
-          </button>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Date Range */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) => handleFilterChange('startDate', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) => handleFilterChange('endDate', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+      <FilterPanel
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onClearFilters={clearFilters}
+        isCollapsed={filtersCollapsed}
+        onToggleCollapse={() => setFiltersCollapsed(!filtersCollapsed)}
+      />
 
-          {/* Location Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
-            <input
-              type="text"
-              placeholder="Enter district name"
-              value={filters.district}
-              onChange={(e) => handleFilterChange('district', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Severity Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Severity</label>
-            <select
-              value={filters.severity}
-              onChange={(e) => handleFilterChange('severity', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Severities</option>
-              <option value="mild">Mild</option>
-              <option value="moderate">Moderate</option>
-              <option value="severe">Severe</option>
-            </select>
-          </div>
-
-          {/* Age Group Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
-            <select
-              value={filters.ageGroup}
-              onChange={(e) => handleFilterChange('ageGroup', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Ages</option>
-              <option value="0-5">0-5 years</option>
-              <option value="5-15">5-15 years</option>
-              <option value="15-25">15-25 years</option>
-              <option value="25-35">25-35 years</option>
-              <option value="35-45">35-45 years</option>
-              <option value="45+">45+ years</option>
-            </select>
-          </div>
-
-          {/* Symptoms Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Symptoms</label>
-            <input
-              type="text"
-              placeholder="Enter symptoms"
-              value={filters.symptoms}
-              onChange={(e) => handleFilterChange('symptoms', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Water Source Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Water Source</label>
-            <select
-              value={filters.waterSource}
-              onChange={(e) => handleFilterChange('waterSource', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Sources</option>
-              <option value="River">River</option>
-              <option value="Lake">Lake</option>
-              <option value="Pond">Pond</option>
-              <option value="Well">Well</option>
-              <option value="Borehole">Borehole</option>
-              <option value="Spring">Spring</option>
-              <option value="Tap Water">Tap Water</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Location Filter */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
+      {/* Location Filter Map */}
+      {!filtersCollapsed && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Geographic Filter</h3>
           <MapFilter
             onAreaSelect={handleLocationFilter}
             selectedArea={filters.locationBounds}
             height="250px"
           />
         </div>
-      </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="bg-white rounded-lg shadow">
@@ -333,6 +238,13 @@ const AnalyticsHub = () => {
           )}
         </div>
       </div>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        filters={filters}
+      />
     </div>
   );
 };

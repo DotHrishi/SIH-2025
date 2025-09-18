@@ -66,20 +66,25 @@ src/
 │   ├── maps/
 │   │   ├── InteractiveMap.jsx
 │   │   ├── MapLayers.jsx
-│   │   └── MapControls.jsx
+│   │   ├── MapControls.jsx
+│   │   ├── PatientCaseCircles.jsx
+│   │   └── CaseClusterPopup.jsx
 │   └── auth/
 │       ├── Login.jsx
 │       └── ProtectedRoute.jsx
 ├── hooks/
 │   ├── useApi.js
-│   └── useMap.js
+│   ├── useMap.js
+│   └── usePatientClusters.js
 ├── services/
 │   ├── api.js
-│   └── mapService.js
+│   ├── mapService.js
+│   └── clusterService.js
 ├── utils/
 │   ├── constants.js
 │   ├── helpers.js
-│   └── validation.js
+│   ├── validation.js
+│   └── geoUtils.js
 └── styles/
     └── globals.css
 ```
@@ -93,7 +98,8 @@ src/
 │   ├── patientReportController.js
 │   ├── analyticsController.js
 │   ├── alertsController.js
-│   └── directoryController.js
+│   ├── directoryController.js
+│   └── mapController.js
 ├── models/
 │   ├── WaterReport.js
 │   ├── PatientReport.js
@@ -105,7 +111,8 @@ src/
 │   ├── reports.js
 │   ├── analytics.js
 │   ├── alerts.js
-│   └── directory.js
+│   ├── directory.js
+│   └── maps.js
 ├── middleware/
 │   ├── validation.js
 │   ├── upload.js
@@ -113,10 +120,54 @@ src/
 ├── utils/
 │   ├── database.js
 │   ├── fileUpload.js
-│   └── alertSystem.js
+│   ├── alertSystem.js
+│   └── geoCluster.js
 └── config/
     └── database.js
 ```
+
+## Patient Case Clustering and Visualization
+
+### Geographic Clustering Algorithm
+The system implements a geographic clustering algorithm to group patient cases by location and visualize them as circles with radius proportional to case density.
+
+#### Clustering Logic
+```javascript
+// Cluster patient cases within a specified radius (e.g., 1km)
+const clusterRadius = 1000; // meters
+const clusters = [];
+
+patientReports.forEach(report => {
+  const existingCluster = clusters.find(cluster => 
+    calculateDistance(cluster.center, report.location) <= clusterRadius
+  );
+  
+  if (existingCluster) {
+    existingCluster.cases.push(report);
+    existingCluster.center = calculateCentroid(existingCluster.cases);
+  } else {
+    clusters.push({
+      center: report.location,
+      cases: [report],
+      severity: calculateClusterSeverity(cases)
+    });
+  }
+});
+```
+
+#### Circle Visualization Parameters
+- **Base Radius**: 50 pixels minimum
+- **Scale Factor**: radius = baseRadius + (caseCount * 15)
+- **Color Coding**: 
+  - Green (#10B981): Predominantly mild cases
+  - Yellow (#F59E0B): Mixed or moderate cases
+  - Red (#EF4444): Severe cases or high density
+- **Opacity**: 0.6 for filled circles, 0.8 for borders
+
+#### Real-time Updates
+- WebSocket connection for live patient report updates
+- Automatic cluster recalculation on new case submissions
+- Smooth animation transitions for circle size changes
 
 ## Data Models
 

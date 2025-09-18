@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import InteractiveMap from './InteractiveMap.jsx';
 import MapLayers from './MapLayers.jsx';
 import MapControls from './MapControls.jsx';
+import PatientCaseCircles from './PatientCaseCircles.jsx';
 
 const ComprehensiveMap = ({
   center = [20.5937, 78.9629], // Default to India center
@@ -14,7 +15,8 @@ const ComprehensiveMap = ({
     waterBodies: [],
     outbreakAreas: [],
     facilities: [],
-    ngos: []
+    ngos: [],
+    patientReports: []
   },
   showControls = true,
   showLayerControls = true,
@@ -24,7 +26,8 @@ const ComprehensiveMap = ({
     waterBodies: true,
     outbreakAreas: true,
     facilities: true,
-    ngos: true
+    ngos: true,
+    patientClusters: true
   });
 
   const handleLayerToggle = useCallback((layerKey, isVisible) => {
@@ -74,6 +77,13 @@ const ComprehensiveMap = ({
             facilities={data.facilities}
             ngos={data.ngos}
             visibleLayers={visibleLayers}
+          />,
+          <PatientCaseCircles
+            key="patient-clusters"
+            patientReports={data.patientReports}
+            visible={visibleLayers.patientClusters}
+            clusterRadius={1000}
+            realTimeUpdates={true}
           />
         ]}
       />

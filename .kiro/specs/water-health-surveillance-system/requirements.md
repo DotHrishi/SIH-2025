@@ -100,6 +100,11 @@ This document outlines the requirements for a comprehensive Water Quality and He
 3. WHEN viewing outbreak areas THEN the system SHALL color-code regions by risk level (high, medium, low)
 4. WHEN clicking map markers THEN the system SHALL display detailed information popups
 5. WHEN filtering map data THEN the system SHALL update markers and overlays in real-time
+6. WHEN displaying patient reports THEN the system SHALL mark patient locations with circular overlays
+7. WHEN multiple patient cases exist in an area THEN the system SHALL increase circle radius proportionally to case density
+8. WHEN viewing patient case circles THEN the system SHALL color-code circles by severity (mild=green, moderate=yellow, severe=red)
+9. WHEN clicking patient case circles THEN the system SHALL display popup with case count, severity breakdown, and recent cases
+10. WHEN patient data updates THEN the system SHALL dynamically update circle sizes and colors in real-time
 
 ### Requirement 9: Data Storage and Management
 

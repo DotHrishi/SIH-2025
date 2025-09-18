@@ -1,31 +1,10 @@
 import { useState, useEffect } from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-} from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import InteractiveChart from './InteractiveChart';
+import StatisticsDashboard from './StatisticsDashboard';
+import CorrelationAnalysis from './CorrelationAnalysis';
 import api, { analyticsAPI } from '../../services/api';
 
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+
 
 const TrendAnalysis = ({ filters }) => {
   const [trendData, setTrendData] = useState(null);
@@ -33,6 +12,7 @@ const TrendAnalysis = ({ filters }) => {
   const [waterQualityData, setWaterQualityData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeView, setActiveView] = useState('overview');
   const [activeChart, setActiveChart] = useState('trends');
 
   useEffect(() => {
@@ -75,34 +55,9 @@ const TrendAnalysis = ({ filters }) => {
     }
   };
 
-  // Chart configurations
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
-  };
-
-  const doughnutOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'right',
-      },
-      title: {
-        display: true,
-      },
-    },
+  const handleDataPointClick = (dataPoint) => {
+    console.log('Data point clicked:', dataPoint);
+    // Handle data point interaction
   };
 
   // Prepare trend chart data
@@ -297,195 +252,156 @@ const TrendAnalysis = ({ filters }) => {
 
   return (
     <div className="space-y-6">
-      {/* Summary Statistics */}
-      {summaryStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{summaryStats.totalCases}</div>
-            <div className="text-sm text-blue-800">Total Cases</div>
+      {/* View Navigation */}
+      <div className="flex space-x-4 border-b border-gray-200">
+        <button
+          onClick={() => setActiveView('overview')}
+          className={`py-2 px-4 font-medium text-sm transition-colors ${
+            activeView === 'overview'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Statistics Overview
+        </button>
+        <button
+          onClick={() => setActiveView('trends')}
+          className={`py-2 px-4 font-medium text-sm transition-colors ${
+            activeView === 'trends'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Trend Charts
+        </button>
+        <button
+          onClick={() => setActiveView('correlation')}
+          className={`py-2 px-4 font-medium text-sm transition-colors ${
+            activeView === 'correlation'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Correlation Analysis
+        </button>
+      </div>
+
+      {/* View Content */}
+      {activeView === 'overview' && (
+        <StatisticsDashboard 
+          filters={filters} 
+          onStatClick={handleDataPointClick}
+        />
+      )}
+
+      {activeView === 'trends' && (
+        <div className="space-y-6">
+          {/* Chart Navigation */}
+          <div className="flex space-x-4 border-b border-gray-200">
+            <button
+              onClick={() => setActiveChart('trends')}
+              className={`py-2 px-4 font-medium text-sm transition-colors ${
+                activeChart === 'trends'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Case Trends
+            </button>
+            <button
+              onClick={() => setActiveChart('severity')}
+              className={`py-2 px-4 font-medium text-sm transition-colors ${
+                activeChart === 'severity'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Severity Distribution
+            </button>
+            <button
+              onClick={() => setActiveChart('ageGroup')}
+              className={`py-2 px-4 font-medium text-sm transition-colors ${
+                activeChart === 'ageGroup'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Age Groups
+            </button>
+            <button
+              onClick={() => setActiveChart('waterQuality')}
+              className={`py-2 px-4 font-medium text-sm transition-colors ${
+                activeChart === 'waterQuality'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Water Quality
+            </button>
           </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{summaryStats.totalWaterReports}</div>
-            <div className="text-sm text-green-800">Water Reports</div>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">{summaryStats.activeAlerts}</div>
-            <div className="text-sm text-yellow-800">Active Alerts</div>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-purple-600">{summaryStats.affectedDistricts}</div>
-            <div className="text-sm text-purple-800">Affected Districts</div>
-          </div>
+
+          {/* Interactive Charts */}
+          {activeChart === 'trends' && getTrendChartData() && (
+            <InteractiveChart
+              data={getTrendChartData()}
+              type="line"
+              title="Daily Case Trends Over Time"
+              subtitle="Total cases and severe cases by date"
+              onDataPointClick={handleDataPointClick}
+              height={400}
+            />
+          )}
+
+          {activeChart === 'severity' && getSeverityChartData() && (
+            <InteractiveChart
+              data={getSeverityChartData()}
+              type="doughnut"
+              title="Case Severity Distribution"
+              subtitle="Distribution by severity level"
+              onDataPointClick={handleDataPointClick}
+              height={400}
+            />
+          )}
+
+          {activeChart === 'ageGroup' && getAgeGroupChartData() && (
+            <InteractiveChart
+              data={getAgeGroupChartData()}
+              type="bar"
+              title="Case Distribution by Age Group"
+              subtitle="Number of cases per age group"
+              onDataPointClick={handleDataPointClick}
+              height={400}
+            />
+          )}
+
+          {activeChart === 'waterQuality' && getWaterQualityChartData() && (
+            <InteractiveChart
+              data={getWaterQualityChartData()}
+              type="line"
+              title="Water Quality Trends"
+              subtitle="pH and turbidity levels over time"
+              onDataPointClick={handleDataPointClick}
+              height={400}
+              customOptions={waterQualityChartOptions}
+            />
+          )}
+
+          {/* No Data Message */}
+          {((activeChart === 'trends' && !getTrendChartData()) ||
+            (activeChart === 'severity' && !getSeverityChartData()) ||
+            (activeChart === 'ageGroup' && !getAgeGroupChartData()) ||
+            (activeChart === 'waterQuality' && !getWaterQualityChartData())) && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-lg mb-2">📊</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No data available</h3>
+              <p className="text-gray-500">Try adjusting your filters to see chart data.</p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Chart Navigation */}
-      <div className="flex space-x-4 border-b border-gray-200">
-        <button
-          onClick={() => setActiveChart('trends')}
-          className={`py-2 px-4 font-medium text-sm transition-colors ${
-            activeChart === 'trends'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Case Trends
-        </button>
-        <button
-          onClick={() => setActiveChart('severity')}
-          className={`py-2 px-4 font-medium text-sm transition-colors ${
-            activeChart === 'severity'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Severity Distribution
-        </button>
-        <button
-          onClick={() => setActiveChart('ageGroup')}
-          className={`py-2 px-4 font-medium text-sm transition-colors ${
-            activeChart === 'ageGroup'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Age Groups
-        </button>
-        <button
-          onClick={() => setActiveChart('waterQuality')}
-          className={`py-2 px-4 font-medium text-sm transition-colors ${
-            activeChart === 'waterQuality'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Water Quality
-        </button>
-      </div>
-
-      {/* Chart Display */}
-      <div className="bg-white p-6 rounded-lg border">
-        {activeChart === 'trends' && getTrendChartData() && (
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Daily Case Trends</h3>
-            <Line 
-              data={getTrendChartData()} 
-              options={{
-                ...chartOptions,
-                plugins: {
-                  ...chartOptions.plugins,
-                  title: {
-                    display: true,
-                    text: 'Daily Case Trends Over Time',
-                  },
-                },
-              }} 
-            />
-          </div>
-        )}
-
-        {activeChart === 'severity' && getSeverityChartData() && (
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Case Severity Distribution</h3>
-            <div className="max-w-md mx-auto">
-              <Doughnut 
-                data={getSeverityChartData()} 
-                options={{
-                  ...doughnutOptions,
-                  plugins: {
-                    ...doughnutOptions.plugins,
-                    title: {
-                      display: true,
-                      text: 'Distribution by Severity Level',
-                    },
-                  },
-                }} 
-              />
-            </div>
-          </div>
-        )}
-
-        {activeChart === 'ageGroup' && getAgeGroupChartData() && (
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Cases by Age Group</h3>
-            <Bar 
-              data={getAgeGroupChartData()} 
-              options={{
-                ...chartOptions,
-                plugins: {
-                  ...chartOptions.plugins,
-                  title: {
-                    display: true,
-                    text: 'Case Distribution by Age Group',
-                  },
-                },
-              }} 
-            />
-          </div>
-        )}
-
-        {activeChart === 'waterQuality' && getWaterQualityChartData() && (
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Water Quality Trends</h3>
-            <Line 
-              data={getWaterQualityChartData()} 
-              options={waterQualityChartOptions} 
-            />
-          </div>
-        )}
-
-        {/* No Data Message */}
-        {((activeChart === 'trends' && !getTrendChartData()) ||
-          (activeChart === 'severity' && !getSeverityChartData()) ||
-          (activeChart === 'ageGroup' && !getAgeGroupChartData()) ||
-          (activeChart === 'waterQuality' && !getWaterQualityChartData())) && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-lg mb-2">📊</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No data available</h3>
-            <p className="text-gray-500">Try adjusting your filters to see chart data.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Key Insights */}
-      {summaryStats && (
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Most Affected Age Group</h4>
-              <p className="text-gray-600">
-                {summaryStats.ageGroupDistribution?.[0]?._id || 'N/A'} 
-                {summaryStats.ageGroupDistribution?.[0]?.count && 
-                  ` (${summaryStats.ageGroupDistribution[0].count} cases)`
-                }
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Common Symptoms</h4>
-              <p className="text-gray-600">
-                {summaryStats.commonSymptoms?.slice(0, 3).map(s => s._id).join(', ') || 'N/A'}
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Severity Breakdown</h4>
-              <p className="text-gray-600">
-                {summaryStats.severityDistribution?.map(s => 
-                  `${s._id}: ${s.count}`
-                ).join(', ') || 'N/A'}
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Water Source Issues</h4>
-              <p className="text-gray-600">
-                {summaryStats.waterSourceDistribution?.[0]?._id || 'N/A'}
-                {summaryStats.waterSourceDistribution?.[0]?.count && 
-                  ` (${summaryStats.waterSourceDistribution[0].count} reports)`
-                }
-              </p>
-            </div>
-          </div>
-        </div>
+      {activeView === 'correlation' && (
+        <CorrelationAnalysis filters={filters} />
       )}
     </div>
   );

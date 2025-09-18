@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReportsList from './ReportsList';
 import ReportDetails from './ReportDetails';
+import PatientReportDetails from './PatientReportDetails';
 import api from '../../services/api';
 
 const ReportsHub = () => {
@@ -143,12 +144,23 @@ const ReportsHub = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'details':
-        return (
-          <ReportDetails
-            report={selectedReport}
-            onBack={handleBackToList}
-          />
-        );
+        // Use different detail components based on report type
+        if (selectedReport?.type === 'patient') {
+          return (
+            <PatientReportDetails
+              reportId={selectedReport.rawData._id}
+              onClose={handleBackToList}
+              isModal={false}
+            />
+          );
+        } else {
+          return (
+            <ReportDetails
+              report={selectedReport}
+              onBack={handleBackToList}
+            />
+          );
+        }
       
       default:
         return (

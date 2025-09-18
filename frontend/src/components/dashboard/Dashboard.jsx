@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import StatsCard from './StatsCard';
 import RecentActivity from './RecentActivity';
+import PatientReportsCard from './PatientReportsCard';
 import ComprehensiveMap from '../maps/ComprehensiveMap';
 import api from '../../services/api';
 
@@ -18,14 +19,19 @@ const Dashboard = () => {
     waterBodies: [],
     outbreakAreas: [],
     facilities: [],
-    ngos: []
+    ngos: [],
+    patientReports: []
   });
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchMapData();
     
     // Set up auto-refresh every 5 minutes
-    const interval = setInterval(fetchDashboardStats, 5 * 60 * 1000);
+    const interval = setInterval(() => {
+      fetchDashboardStats();
+      fetchMapData();
+    }, 5 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, []);
@@ -63,8 +69,57 @@ const Dashboard = () => {
     }
   };
 
+  const fetchMapData = async () => {
+    try {
+      const { mapsAPI, reportsAPI } = await import('../../services/api');
+      
+      // Fetch patient clusters for map visualization
+      const clustersResponse = await mapsAPI.getPatientClusters({
+        radius: 1000,
+        minCases: 1
+      });
+      
+      if (clustersResponse.data.success) {
+        // Convert clusters to patient reports format for map display
+        const patientReports = [];
+        clustersResponse.data.data.clusters.forEach(cluster => {
+          cluster.cases.forEach(case_ => {
+            patientReports.push({
+              _id: case_.caseId,
+              caseId: case_.caseId,
+              severity: case_.severity,
+              patientInfo: {
+                coordinates: case_.coordinates,
+                location: case_.location
+              },
+              diseaseIdentification: {
+                suspectedDisease: case_.suspectedDisease
+              },
+              reportDate: case_.reportDate,
+              cluster: {
+                id: cluster.id,
+                center: cluster.center,
+                caseCount: cluster.caseCount,
+                severity: cluster.severity,
+                radius: cluster.radius
+              }
+            });
+          });
+        });
+        
+        setMapData(prev => ({
+          ...prev,
+          patientReports
+        }));
+      }
+    } catch (err) {
+      console.error('Error fetching map data:', err);
+    }
+  };
+
   const handleRefresh = () => {
     fetchDashboardStats();
+    fetchMapData();
   };
 
   return (
@@ -151,6 +206,49 @@ const Dashboard = () => {
         {/* Recent Activity - Takes up 1/3 of the space */}
         <div className="xl:col-span-1">
           <RecentActivity />
+        </div>
+      </div>
+
+      {/* Patient Reports Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <PatientReportsCard />
+        
+        {/* Additional dashboard widgets can be added here */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Quick Actions
+          </h2>
+          <div className="space-y-3">
+            <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📊</span>
+                <div>
+                  <div className="font-medium text-gray-900">View Analytics</div>
+                  <div className="text-sm text-gray-600">Analyze trends and patterns</div>
+                </div>
+              </div>
+            </button>
+            
+            <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🚨</span>
+                <div>
+                  <div className="font-medium text-gray-900">Create Alert</div>
+                  <div className="text-sm text-gray-600">Generate health alerts</div>
+                </div>
+              </div>
+            </button>
+            
+            <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📋</span>
+                <div>
+                  <div className="font-medium text-gray-900">Export Reports</div>
+                  <div className="text-sm text-gray-600">Download data exports</div>
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
