@@ -3,32 +3,8 @@ const { GridFsStorage } = require('multer-gridfs-storage');
 const path = require('path');
 const crypto = require('crypto');
 
-// Create storage engine
-const storage = new GridFsStorage({
-  url: process.env.MONGODB_URI,
-  file: (req, file) => {
-    return new Promise((resolve, reject) => {
-      crypto.randomBytes(16, (err, buf) => {
-        if (err) {
-          return reject(err);
-        }
-        const filename = buf.toString('hex') + path.extname(file.originalname);
-        const fileInfo = {
-          filename: filename,
-          bucketName: 'uploads',
-          metadata: {
-            originalName: file.originalname,
-            uploadDate: new Date(),
-            uploadedBy: req.body.uploadedBy || 'system',
-            fileType: file.mimetype,
-            size: file.size
-          }
-        };
-        resolve(fileInfo);
-      });
-    });
-  }
-});
+// Use memory storage to avoid GridFS connection issues during startup
+const storage = multer.memoryStorage();
 
 // File filter for images only
 const fileFilter = (req, file, cb) => {

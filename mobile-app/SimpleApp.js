@@ -33,17 +33,15 @@ const SimpleApp = () => {
       pH: '',
       turbidity: '',
       temperature: '',
-      dissolvedOxygen: '',
+      tds: '', // Total Dissolved Solids
     },
     visualInspection: {
       color: '',
       odor: '',
-      clarity: '',
     },
     collectorName: '',
     collectorContact: '',
-    additionalNotes: '',
-    images: [],
+    microscopeImages: [], // Tagged as microscope images
   });
   const [patientForm, setPatientForm] = useState({
     patientInfo: {
@@ -227,7 +225,7 @@ const SimpleApp = () => {
       if (!result.canceled && result.assets[0]) {
         setWaterQualityForm(prev => ({
           ...prev,
-          images: [...prev.images, result.assets[0]],
+          microscopeImages: [...prev.microscopeImages, result.assets[0]],
         }));
       }
     } catch (error) {
@@ -239,7 +237,7 @@ const SimpleApp = () => {
   const removeImage = (index) => {
     setWaterQualityForm(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index),
+      microscopeImages: prev.microscopeImages.filter((_, i) => i !== index),
     }));
   };
 
@@ -257,28 +255,28 @@ const SimpleApp = () => {
 
   const handleWaterQualitySubmit = async () => {
     // Validate required fields
-    if (!waterQualityForm.location.address || 
-        !waterQualityForm.location.district ||
-        !waterQualityForm.location.waterSource || 
-        !waterQualityForm.collectorName ||
+    if (!waterQualityForm.collectorName ||
+        !waterQualityForm.collectorContact ||
         !waterQualityForm.testingParameters.pH ||
         !waterQualityForm.testingParameters.turbidity ||
         !waterQualityForm.testingParameters.temperature ||
-        !waterQualityForm.testingParameters.dissolvedOxygen) {
-      Alert.alert('Validation Error', 'Please fill in all required fields:\n• Address\n• District\n• Water Source\n• Collector Name\n• All Testing Parameters (pH, Turbidity, Temperature, Dissolved Oxygen)');
+        !waterQualityForm.testingParameters.tds ||
+        !waterQualityForm.visualInspection.color ||
+        !waterQualityForm.visualInspection.odor) {
+      Alert.alert('Validation Error', 'Please fill in all required fields:\n• Collector Name\n• Contact Number\n• pH\n• Turbidity\n• Temperature\n• TDS\n• Color\n• Odor');
       return;
     }
 
     try {
-      // Upload images first if any
+      // Upload microscope images first if any
       const imageUrls = [];
-      for (const image of waterQualityForm.images) {
+      for (const image of waterQualityForm.microscopeImages) {
         try {
           const formData = new FormData();
           formData.append('file', {
             uri: image.uri,
             type: 'image/jpeg',
-            name: 'water-quality-image.jpg',
+            name: 'microscope-image.jpg',
           });
 
           const uploadResponse = await filesAPI.upload(formData);
@@ -286,35 +284,38 @@ const SimpleApp = () => {
             imageUrls.push(uploadResponse.data.data.url);
           }
         } catch (uploadError) {
-          console.error('Image upload error:', uploadError);
+          console.error('Microscope image upload error:', uploadError);
         }
       }
 
       // Generate unique sample ID
       const sampleId = `SAMPLE_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       
-      // Prepare report data for backend (matching backend expected format)
+      // Prepare report data for backend (simplified format)
       const reportData = {
         submittedBy: waterQualityForm.collectorName,
         location: {
-          coordinates: waterQualityForm.location.coordinates,
-          address: waterQualityForm.location.address,
-          district: waterQualityForm.location.district,
-          waterSource: waterQualityForm.location.waterSource.toLowerCase(), // Backend expects lowercase
+          coordinates: (waterQualityForm.location.coordinates && waterQualityForm.location.coordinates.length === 2) 
+            ? waterQualityForm.location.coordinates 
+            : [73.8567, 18.5204], // Default to Pune coordinates if location not available
+          address: waterQualityForm.location.address || 'Mobile App Location',
+          district: waterQualityForm.location.district || 'Unknown District',
+          waterSource: 'other', // Default water source
         },
         testingParameters: {
-          pH: parseFloat(waterQualityForm.testingParameters.pH) || 7.0,
-          turbidity: parseFloat(waterQualityForm.testingParameters.turbidity) || 1.0,
-          temperature: parseFloat(waterQualityForm.testingParameters.temperature) || 25.0,
-          dissolvedOxygen: parseFloat(waterQualityForm.testingParameters.dissolvedOxygen) || 8.0,
+          pH: parseFloat(waterQualityForm.testingParameters.pH),
+          turbidity: parseFloat(waterQualityForm.testingParameters.turbidity),
+          temperature: parseFloat(waterQualityForm.testingParameters.temperature),
+          dissolvedOxygen: 8.0, // Default value for backend compatibility
+          totalDissolvedSolids: parseFloat(waterQualityForm.testingParameters.tds),
         },
         sampleCollection: {
-          collectionDate: new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0], // Local date in YYYY-MM-DD format
-          collectionTime: new Date().toLocaleTimeString('en-GB', { hour12: false }).substring(0, 5), // HH:MM format
+          collectionDate: new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
+          collectionTime: new Date().toLocaleTimeString('en-GB', { hour12: false }).substring(0, 5),
           collectorName: waterQualityForm.collectorName,
           sampleId: sampleId,
         },
-        notes: waterQualityForm.additionalNotes || '',
+        notes: `Color: ${waterQualityForm.visualInspection.color}, Odor: ${waterQualityForm.visualInspection.odor}, Contact: ${waterQualityForm.collectorContact}`,
         status: 'pending',
       };
 
@@ -327,12 +328,11 @@ const SimpleApp = () => {
         // Reset form
         setWaterQualityForm({
           location: { address: '', district: '', waterSource: '', coordinates: [] },
-          testingParameters: { pH: '', turbidity: '', temperature: '', dissolvedOxygen: '' },
-          visualInspection: { color: '', odor: '', clarity: '' },
+          testingParameters: { pH: '', turbidity: '', temperature: '', tds: '' },
+          visualInspection: { color: '', odor: '' },
           collectorName: '',
           collectorContact: '',
-          additionalNotes: '',
-          images: [],
+          microscopeImages: [],
         });
       } else {
         throw new Error(response.data.message || 'Failed to submit report');
@@ -359,7 +359,9 @@ const SimpleApp = () => {
           contactNumber: patientForm.patientInfo.contactNumber,
         },
         location: {
-          coordinates: patientForm.location.coordinates,
+          coordinates: (patientForm.location.coordinates && patientForm.location.coordinates.length === 2) 
+            ? patientForm.location.coordinates 
+            : [73.8567, 18.5204], // Default to Pune coordinates if location not available
           address: patientForm.location.address,
           district: patientForm.location.district,
         },
@@ -605,45 +607,26 @@ const SimpleApp = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Location Information</Text>
+        <Text style={styles.sectionTitle}>Collector Information</Text>
         
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Address *</Text>
+          <Text style={styles.label}>Collector Name *</Text>
           <TextInput
             style={styles.input}
-            value={waterQualityForm.location.address}
-            onChangeText={(value) => setWaterQualityForm(prev => ({
-              ...prev,
-              location: { ...prev.location, address: value }
-            }))}
-            placeholder="Enter location address"
-            multiline
+            value={waterQualityForm.collectorName}
+            onChangeText={(value) => setWaterQualityForm(prev => ({ ...prev, collectorName: value }))}
+            placeholder="Enter your name"
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>District *</Text>
+          <Text style={styles.label}>Contact Number *</Text>
           <TextInput
             style={styles.input}
-            value={waterQualityForm.location.district}
-            onChangeText={(value) => setWaterQualityForm(prev => ({
-              ...prev,
-              location: { ...prev.location, district: value }
-            }))}
-            placeholder="Enter district"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Water Source *</Text>
-          <TextInput
-            style={styles.input}
-            value={waterQualityForm.location.waterSource}
-            onChangeText={(value) => setWaterQualityForm(prev => ({
-              ...prev,
-              location: { ...prev.location, waterSource: value }
-            }))}
-            placeholder="e.g., River, Well, Tap, Pond"
+            value={waterQualityForm.collectorContact}
+            onChangeText={(value) => setWaterQualityForm(prev => ({ ...prev, collectorContact: value }))}
+            placeholder="Enter contact number"
+            keyboardType="phone-pad"
           />
         </View>
       </View>
@@ -695,15 +678,15 @@ const SimpleApp = () => {
             />
           </View>
           <View style={styles.halfInput}>
-            <Text style={styles.label}>Dissolved Oxygen (mg/L) *</Text>
+            <Text style={styles.label}>TDS (mg/L) *</Text>
             <TextInput
               style={styles.input}
-              value={waterQualityForm.testingParameters.dissolvedOxygen}
+              value={waterQualityForm.testingParameters.tds}
               onChangeText={(value) => setWaterQualityForm(prev => ({
                 ...prev,
-                testingParameters: { ...prev.testingParameters, dissolvedOxygen: value }
+                testingParameters: { ...prev.testingParameters, tds: value }
               }))}
-              placeholder="0-20"
+              placeholder="0-2000"
               keyboardType="numeric"
             />
           </View>
@@ -714,7 +697,7 @@ const SimpleApp = () => {
         <Text style={styles.sectionTitle}>Visual Inspection</Text>
         
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Color</Text>
+          <Text style={styles.label}>Color *</Text>
           <TextInput
             style={styles.input}
             value={waterQualityForm.visualInspection.color}
@@ -727,7 +710,7 @@ const SimpleApp = () => {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Odor</Text>
+          <Text style={styles.label}>Odor *</Text>
           <TextInput
             style={styles.input}
             value={waterQualityForm.visualInspection.odor}
@@ -738,57 +721,19 @@ const SimpleApp = () => {
             placeholder="e.g., None, Chlorine, Fishy, Rotten"
           />
         </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Clarity</Text>
-          <TextInput
-            style={styles.input}
-            value={waterQualityForm.visualInspection.clarity}
-            onChangeText={(value) => setWaterQualityForm(prev => ({
-              ...prev,
-              visualInspection: { ...prev.visualInspection, clarity: value }
-            }))}
-            placeholder="e.g., Clear, Slightly cloudy, Very cloudy"
-          />
-        </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sample Collection Information</Text>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Collector Name *</Text>
-          <TextInput
-            style={styles.input}
-            value={waterQualityForm.collectorName}
-            onChangeText={(value) => setWaterQualityForm(prev => ({ ...prev, collectorName: value }))}
-            placeholder="Enter your name"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Contact Number</Text>
-          <TextInput
-            style={styles.input}
-            value={waterQualityForm.collectorContact}
-            onChangeText={(value) => setWaterQualityForm(prev => ({ ...prev, collectorContact: value }))}
-            placeholder="Enter contact number"
-            keyboardType="phone-pad"
-          />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Images</Text>
+        <Text style={styles.sectionTitle}>Microscope Images</Text>
         
         <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-          <Text style={styles.imagePickerIcon}>📷</Text>
-          <Text style={styles.imagePickerText}>Add Photo</Text>
+          <Text style={styles.imagePickerIcon}>🔬</Text>
+          <Text style={styles.imagePickerText}>Add Microscope Image</Text>
         </TouchableOpacity>
 
-        {waterQualityForm.images.length > 0 && (
+        {waterQualityForm.microscopeImages.length > 0 && (
           <View style={styles.imageGrid}>
-            {waterQualityForm.images.map((image, index) => (
+            {waterQualityForm.microscopeImages.map((image, index) => (
               <View key={index} style={styles.imageContainer}>
                 <Image source={{ uri: image.uri }} style={styles.image} />
                 <TouchableOpacity
@@ -801,18 +746,6 @@ const SimpleApp = () => {
             ))}
           </View>
         )}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Additional Notes</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={waterQualityForm.additionalNotes}
-          onChangeText={(value) => setWaterQualityForm(prev => ({ ...prev, additionalNotes: value }))}
-          placeholder="Any additional observations or notes..."
-          multiline
-          numberOfLines={4}
-        />
       </View>
 
       <View style={styles.section}>

@@ -24,50 +24,106 @@ const ReportsHub = () => {
       setLoading(true);
       setError(null);
       
-      // Mock data for now - replace with actual API call
-      const mockReports = [
-        {
-          id: 'WR-2024-001',
-          type: 'water',
-          title: 'Water Quality Test - Downtown Area',
-          status: 'reviewed',
-          submittedDate: '2024-01-15T10:30:00Z',
-          location: 'Downtown Water Treatment Plant',
-          submittedBy: 'Dr. Sarah Johnson',
-          priority: 'medium',
-          summary: 'Routine water quality testing showing elevated chlorine levels'
-        },
-        {
-          id: 'PR-2024-002',
-          type: 'patient',
-          title: 'Waterborne Illness Case',
-          status: 'pending',
-          submittedDate: '2024-01-14T14:20:00Z',
-          location: 'City General Hospital',
-          submittedBy: 'Dr. Michael Chen',
-          priority: 'high',
-          summary: 'Patient presenting with symptoms consistent with waterborne illness'
-        },
-        {
-          id: 'WR-2024-003',
-          type: 'water',
-          title: 'Contamination Alert - River Source',
-          status: 'under_investigation',
-          submittedDate: '2024-01-13T09:15:00Z',
-          location: 'River Intake Point A',
-          submittedBy: 'Environmental Team',
-          priority: 'high',
-          summary: 'Potential contamination detected in primary water source'
-        }
-      ];
+      // Fetch real data from backend using the reportsAPI
+      const { reportsAPI } = await import('../../services/api');
+      const [waterReportsResponse, patientReportsResponse] = await Promise.all([
+        reportsAPI.getWaterReports(),
+        reportsAPI.getPatientReports()
+      ]);
       
-      setReports(mockReports);
+      const waterReports = waterReportsResponse.data.success ? waterReportsResponse.data.data : [];
+      const patientReports = patientReportsResponse.data.success ? patientReportsResponse.data.data : [];
+      
+      // Transform water reports to match UI format
+      const transformedWaterReports = waterReports.map(report => ({
+        id: report.reportId || report._id,
+        type: 'water',
+        title: `Water Quality Report - ${report.location?.district || 'Unknown Location'}`,
+        status: report.status || 'pending',
+        submittedDate: report.createdAt || report.sampleCollection?.collectionDate,
+        location: report.location?.address || 'Unknown Location',
+        submittedBy: report.submittedBy || 'Unknown',
+        priority: getPriorityFromWaterReport(report),
+        summary: generateWaterReportSummary(report),
+        rawData: report // Keep original data for details view
+      }));
+      
+      // Transform patient reports to match UI format
+      const transformedPatientReports = patientReports.map(report => ({
+        id: report.caseId || report._id,
+        type: 'patient',
+        title: `Patient Case - ${report.healthInfo?.suspectedDisease || 'Health Issue'}`,
+        status: report.status || 'pending',
+        submittedDate: report.createdAt || report.reportDate,
+        location: report.location?.address || 'Unknown Location',
+        submittedBy: report.submittedBy || 'Unknown',
+        priority: report.healthInfo?.severity === 'severe' ? 'high' : 'medium',
+        summary: `Patient: ${report.patientInfo?.name || 'Unknown'}, Symptoms: ${report.healthInfo?.symptoms?.join(', ') || 'Not specified'}`,
+        rawData: report // Keep original data for details view
+      }));
+      
+      // Combine and sort by date
+      const allReports = [...transformedWaterReports, ...transformedPatientReports]
+        .sort((a, b) => new Date(b.submittedDate) - new Date(a.submittedDate));
+      
+      setReports(allReports);
     } catch (err) {
       console.error('Error fetching reports:', err);
-      setError('Failed to load reports');
+      setError('Failed to load reports. Please check if the backend server is running.');
+      
+      // Fallback to mock data if API fails
+      const mockReports = [
+        {
+          id: 'MOCK-001',
+          type: 'water',
+          title: 'Sample Water Quality Report',
+          status: 'pending',
+          submittedDate: new Date().toISOString(),
+          location: 'Sample Location',
+          submittedBy: 'System',
+          priority: 'medium',
+          summary: 'This is sample data. Start the backend server to see real reports.'
+        }
+      ];
+      setReports(mockReports);
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Helper function to determine priority from water report data
+  const getPriorityFromWaterReport = (report) => {
+    const params = report.testingParameters;
+    if (!params) return 'low';
+    
+    // Check for concerning values
+    const concerningFactors = [];
+    if (params.pH < 6.5 || params.pH > 8.5) concerningFactors.push('pH');
+    if (params.turbidity > 5) concerningFactors.push('turbidity');
+    if (params.temperature > 35) concerningFactors.push('temperature');
+    if (params.totalDissolvedSolids > 1000) concerningFactors.push('TDS');
+    
+    if (concerningFactors.length >= 2) return 'high';
+    if (concerningFactors.length === 1) return 'medium';
+    return 'low';
+  };
+  
+  // Helper function to generate summary from water report
+  const generateWaterReportSummary = (report) => {
+    const params = report.testingParameters;
+    if (!params) return 'Water quality parameters not available';
+    
+    const issues = [];
+    if (params.pH < 6.5 || params.pH > 8.5) issues.push(`pH: ${params.pH}`);
+    if (params.turbidity > 5) issues.push(`High turbidity: ${params.turbidity} NTU`);
+    if (params.temperature > 35) issues.push(`High temperature: ${params.temperature}°C`);
+    if (params.totalDissolvedSolids > 1000) issues.push(`High TDS: ${params.totalDissolvedSolids} mg/L`);
+    
+    if (issues.length > 0) {
+      return `Issues detected: ${issues.join(', ')}`;
+    }
+    
+    return `pH: ${params.pH}, Turbidity: ${params.turbidity} NTU, Temp: ${params.temperature}°C, TDS: ${params.totalDissolvedSolids} mg/L`;
   };
 
   const handleViewReport = (report) => {

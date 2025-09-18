@@ -30,18 +30,64 @@ const upload = multer({
 });
 
 /**
+ * Adapter function to convert mobile app data format to backend model format
+ */
+const adaptMobileAppWaterData = (mobileData) => {
+  // Handle mobile app format (simplified)
+  if (mobileData.sampleCollection && mobileData.sampleCollection.collectorName) {
+    // Already in backend format
+    return mobileData;
+  }
+
+  // Convert mobile app format to backend format
+  return {
+    submittedBy: mobileData.submittedBy,
+    location: {
+      coordinates: (mobileData.location?.coordinates && mobileData.location.coordinates.length === 2) 
+        ? mobileData.location.coordinates 
+        : [73.8567, 18.5204], // Default to Pune coordinates
+      address: mobileData.location?.address || 'Mobile App Location',
+      district: mobileData.location?.district || 'Unknown District',
+      waterSource: mobileData.location?.waterSource || 'other'
+    },
+    testingParameters: {
+      pH: parseFloat(mobileData.testingParameters?.pH) || 7.0,
+      turbidity: parseFloat(mobileData.testingParameters?.turbidity) || 0,
+      dissolvedOxygen: parseFloat(mobileData.testingParameters?.dissolvedOxygen) || 8.0,
+      temperature: parseFloat(mobileData.testingParameters?.temperature) || 25.0,
+      totalDissolvedSolids: parseFloat(mobileData.testingParameters?.totalDissolvedSolids) || 0
+    },
+    sampleCollection: {
+      collectionDate: mobileData.sampleCollection?.collectionDate ? 
+        new Date(mobileData.sampleCollection.collectionDate) : new Date(),
+      collectionTime: mobileData.sampleCollection?.collectionTime || 
+        new Date().toLocaleTimeString('en-GB', { hour12: false }).substring(0, 5),
+      collectorName: mobileData.sampleCollection?.collectorName || mobileData.submittedBy,
+      sampleId: mobileData.sampleCollection?.sampleId || 
+        `SAMPLE_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+    },
+    notes: mobileData.notes || '',
+    status: mobileData.status || 'pending'
+  };
+};
+
+/**
  * Create a new water quality report
  * POST /api/reports/water
  */
 const createWaterReport = async (req, res) => {
   try {
+    // Adapt mobile app data format if needed
+    const adaptedData = adaptMobileAppWaterData(req.body);
+    
     const {
       submittedBy,
       location,
       testingParameters,
       sampleCollection,
-      notes
-    } = req.body;
+      notes,
+      status
+    } = adaptedData;
 
     // Validate required fields
     if (!submittedBy || !location || !testingParameters || !sampleCollection) {
@@ -66,7 +112,8 @@ const createWaterReport = async (req, res) => {
       location,
       testingParameters,
       sampleCollection,
-      notes: notes || ''
+      notes: notes || '',
+      status: status || 'pending'
     });
 
     // Handle image uploads if present

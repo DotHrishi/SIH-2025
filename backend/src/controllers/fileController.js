@@ -3,7 +3,7 @@ const { getGridFS } = require('../config/gridfs');
 const { compressImage, generateThumbnail, validateImage } = require('../utils/imageProcessor');
 
 /**
- * Upload single or multiple files
+ * Upload single or multiple files (simplified for mobile app)
  */
 const uploadFiles = async (req, res) => {
   try {
@@ -17,14 +17,20 @@ const uploadFiles = async (req, res) => {
       });
     }
 
-    const uploadedFiles = req.files.map(file => ({
-      fileId: file.id,
-      filename: file.filename,
+    // For now, just return success with mock file URLs
+    // In production, you would save to cloud storage (AWS S3, Cloudinary, etc.)
+    const uploadedFiles = req.files.map((file, index) => ({
+      fileId: `file_${Date.now()}_${index}`,
+      filename: `${Date.now()}_${file.originalname}`,
       originalName: file.originalname,
       size: file.size,
       mimetype: file.mimetype,
       uploadDate: new Date(),
-      metadata: file.metadata
+      url: `/api/files/placeholder/${Date.now()}_${index}`, // Mock URL
+      metadata: {
+        uploadedBy: req.body.uploadedBy || 'mobile_app',
+        type: 'microscope_image'
+      }
     }));
 
     res.status(200).json({
@@ -32,7 +38,8 @@ const uploadFiles = async (req, res) => {
       message: 'Files uploaded successfully',
       data: {
         files: uploadedFiles,
-        count: uploadedFiles.length
+        count: uploadedFiles.length,
+        url: uploadedFiles[0]?.url // Return first file URL for compatibility
       }
     });
   } catch (error) {

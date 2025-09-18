@@ -13,8 +13,9 @@ const RecentActivity = () => {
   const fetchRecentActivity = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/dashboard/recent-activity');
-      setActivities(response.data.activities || []);
+      const { dashboardAPI } = await import('../../services/api');
+      const response = await dashboardAPI.getRecentActivity();
+      setActivities(response.data.data || []);
     } catch (err) {
       console.error('Error fetching recent activity:', err);
       setError('Failed to load recent activity');
@@ -139,7 +140,7 @@ const RecentActivity = () => {
                     {activity.type.replace('_', ' ').toUpperCase()}
                   </span>
                   <span className="text-xs text-gray-500">
-                    {formatTimeAgo(activity.createdAt)}
+                    {formatTimeAgo(activity.timestamp || activity.createdAt)}
                   </span>
                   {activity.location && (
                     <span className="text-xs text-gray-500">

@@ -2,11 +2,76 @@ const PatientReport = require('../models/PatientReport');
 const WaterReport = require('../models/WaterReport');
 
 /**
+ * Adapter function to convert mobile app data format to backend model format
+ */
+const adaptMobileAppPatientData = (mobileData) => {
+  // Handle mobile app format (simplified)
+  if (mobileData.diseaseIdentification && mobileData.suspectedWaterSource) {
+    // Already in backend format
+    return mobileData;
+  }
+
+  // Convert mobile app format to backend format
+  const adaptedData = {
+    submittedBy: mobileData.patientInfo?.name || 'Mobile App User',
+    submitterRole: 'field_worker',
+    patientInfo: {
+      age: parseInt(mobileData.patientInfo?.age) || 0,
+      ageGroup: getAgeGroup(parseInt(mobileData.patientInfo?.age) || 0),
+      gender: mobileData.patientInfo?.gender || 'other',
+      location: mobileData.location?.address || mobileData.location?.district || 'Unknown Location',
+      contactNumber: mobileData.patientInfo?.contactNumber || ''
+    },
+    symptoms: Array.isArray(mobileData.healthInfo?.symptoms) ? 
+      mobileData.healthInfo.symptoms.map(s => s.toLowerCase().replace(/\s+/g, '_')) : 
+      ['other'],
+    severity: mobileData.healthInfo?.severity || 'mild',
+    suspectedWaterSource: {
+      source: mobileData.waterExposure?.waterSource || 'other',
+      location: mobileData.location?.address || mobileData.location?.district || 'Unknown Location',
+      sourceDescription: `Exposure date: ${mobileData.waterExposure?.exposureDate || 'Unknown'}, Others exposed: ${mobileData.waterExposure?.otherExposed || 0}`
+    },
+    diseaseIdentification: {
+      suspectedDisease: mobileData.healthInfo?.suspectedDisease?.toLowerCase().replace(/\s+/g, '_') || 'other',
+      confirmationStatus: 'suspected',
+      labTestsOrdered: [],
+      labResults: ''
+    },
+    reportDate: mobileData.reportDate ? new Date(mobileData.reportDate) : new Date(),
+    onsetDate: mobileData.healthInfo?.onsetDate ? new Date(mobileData.healthInfo.onsetDate) : null,
+    hospitalAdmission: {
+      required: false,
+      hospitalName: '',
+      admissionDate: null
+    },
+    notes: mobileData.additionalNotes || '',
+    emergencyAlert: mobileData.healthInfo?.severity === 'severe' || mobileData.healthInfo?.severity === 'critical'
+  };
+
+  return adaptedData;
+};
+
+/**
+ * Helper function to determine age group
+ */
+const getAgeGroup = (age) => {
+  if (age <= 5) return '0-5';
+  if (age <= 15) return '5-15';
+  if (age <= 25) return '15-25';
+  if (age <= 35) return '25-35';
+  if (age <= 45) return '35-45';
+  return '45+';
+};
+
+/**
  * Create a new patient report
  * POST /api/reports/patient
  */
 const createPatientReport = async (req, res) => {
   try {
+    // Adapt mobile app data format if needed
+    const adaptedData = adaptMobileAppPatientData(req.body);
+    
     const {
       submittedBy,
       submitterRole,
@@ -18,8 +83,9 @@ const createPatientReport = async (req, res) => {
       reportDate,
       onsetDate,
       hospitalAdmission,
-      notes
-    } = req.body;
+      notes,
+      emergencyAlert
+    } = adaptedData;
 
     // Validate required fields
     if (!submittedBy || !patientInfo || !symptoms || !severity || !suspectedWaterSource || !diseaseIdentification) {
@@ -52,7 +118,8 @@ const createPatientReport = async (req, res) => {
       reportDate: reportDate || new Date(),
       onsetDate,
       hospitalAdmission,
-      notes: notes || ''
+      notes: notes || '',
+      emergencyAlert: emergencyAlert || false
     });
 
     // Auto-escalate critical cases

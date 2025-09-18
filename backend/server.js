@@ -66,9 +66,10 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log(`Mobile app can connect to: http://192.168.29.62:${PORT}/api/health`);
 });
 
 module.exports = app;

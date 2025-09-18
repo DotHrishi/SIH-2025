@@ -87,4 +87,28 @@ export const directoryAPI = {
   getNearbyHealthCenters: (params) => api.get('/directory/centers/nearby', { params }),
 };
 
+// Reports API methods
+export const reportsAPI = {
+  // Water reports
+  getWaterReports: (params) => api.get('/reports/water', { params }),
+  getWaterReportById: (id) => api.get(`/reports/water/${id}`),
+  createWaterReport: (data) => api.post('/reports/water', data),
+  updateWaterReport: (id, data) => api.put(`/reports/water/${id}`, data),
+  deleteWaterReport: (id) => api.delete(`/reports/water/${id}`),
+  
+  // Patient reports
+  getPatientReports: (params) => api.get('/reports/patient', { params }),
+  getPatientReportById: (id) => api.get(`/reports/patient/${id}`),
+  createPatientReport: (data) => api.post('/reports/patient', data),
+  updatePatientReport: (id, data) => api.put(`/reports/patient/${id}`, data),
+  deletePatientReport: (id) => api.delete(`/reports/patient/${id}`),
+  getEmergencyCases: (params) => api.get('/reports/patient/emergency', { params }),
+};
+
+// Dashboard API methods
+export const dashboardAPI = {
+  getStats: () => api.get('/dashboard/stats'),
+  getRecentActivity: () => api.get('/dashboard/recent-activity'),
+};
+
 export default api;

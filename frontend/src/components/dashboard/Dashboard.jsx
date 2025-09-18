@@ -35,8 +35,9 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       
-      const response = await api.get('/dashboard/stats');
-      const data = response.data;
+      const { dashboardAPI } = await import('../../services/api');
+      const response = await dashboardAPI.getStats();
+      const data = response.data.data;
       
       setStats({
         waterReports: data.waterReports || 0,

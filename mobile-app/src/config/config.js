@@ -5,7 +5,7 @@ export const API_CONFIG = {
   // For local development (computer IP address)
   // Replace 'localhost' with your computer's IP address when testing on physical device
   // Example: 'http://192.168.1.100:5000/api'
-  BASE_URL: 'http://10.189.179.57:5000/api',
+  BASE_URL: 'http://192.168.29.62:5000/api',
   
   // For production deployment
   // PRODUCTION_URL: 'https://your-domain.com/api',
